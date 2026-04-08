@@ -32,6 +32,8 @@ set(_plugin_sources ${CMAKE_CURRENT_LIST_DIR}/
                     src/DDTrackCreatorBase.cc
                     src/DDTrackCreatorCLIC.cc
                     src/DDTrackCreatorILD.cc
+                    src/DDTrackCreatorEmpty.cc
+                    src/DDGeometryCreatorODD.cc
                     src/DDPandoraPFANewAlgorithm.cpp
                     src/DDGeometryCreatorALLEGRO.cc
                     src/DDTrackCreatorALLEGRO.cc

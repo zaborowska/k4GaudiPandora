@@ -31,7 +31,9 @@
 
 #include "DDBFieldPlugin.h"
 
+#include "DDGeometryCreatorODD.h"
 #include "DDTrackCreatorCLIC.h"
+#include "DDTrackCreatorEmpty.h"
 #include "DDTrackCreatorILD.h"
 
 #include <Api/PandoraApi.h>
@@ -133,6 +135,9 @@ StatusCode DDPandoraPFANewAlgorithm::initialize() {
     m_settings.m_trackCreatorName = "DDTrackCreatorALLEGRO";
     m_geometryCreator = std::make_unique<DDGeometryCreatorALLEGRO>(m_geometryCreatorSettings, m_pPandora, this);
     m_caloHitCreator = std::make_unique<DDCaloHitCreatorALLEGRO>(m_caloHitCreatorSettings, m_pPandora, this);
+  } else if (m_settings.m_detectorName == "ODD" || m_settings.m_trackCreatorName == "DDTrackCreatorEmpty") {
+    m_geometryCreator = std::make_unique<DDGeometryCreatorODD>(m_geometryCreatorSettings, m_pPandora, this);
+    m_caloHitCreator = std::make_unique<DDCaloHitCreator>(m_caloHitCreatorSettings, m_pPandora, this);
   } else {
     m_geometryCreator = std::make_unique<DDGeometryCreator>(m_geometryCreatorSettings, m_pPandora, this);
     m_caloHitCreator = std::make_unique<DDCaloHitCreator>(m_caloHitCreatorSettings, m_pPandora, this);
@@ -144,6 +149,8 @@ StatusCode DDPandoraPFANewAlgorithm::initialize() {
     m_pTrackCreator = std::make_unique<DDTrackCreatorILD>(m_trackCreatorSettings, m_pPandora, this, m_geoSvc);
   else if (m_settings.m_trackCreatorName == "DDTrackCreatorALLEGRO")
     m_pTrackCreator = std::make_unique<DDTrackCreatorALLEGRO>(m_trackCreatorSettings, m_pPandora, this);
+  else if (m_settings.m_trackCreatorName == "DDTrackCreatorEmpty")
+    m_pTrackCreator = std::make_unique<DDTrackCreatorEmpty>(m_trackCreatorSettings, m_pPandora, this);
   else
     error() << "Unknown DDTrackCreator: " << m_settings.m_trackCreatorName << endmsg;
 
