@@ -45,8 +45,9 @@ public:
    *  @param  pandora reference to the relevant pandora instance
    */
   DDGeometryCreator(const Settings& settings, pandora::Pandora& pandora, Gaudi::Algorithm* algorithm);
+  virtual ~DDGeometryCreator() = default;
 
-  pandora::StatusCode CreateGeometry() const;
+  virtual pandora::StatusCode CreateGeometry() const;
 
 protected:
   typedef std::map<pandora::SubDetectorType, PandoraApi::Geometry::SubDetector::Parameters> SubDetectorTypeMap;
@@ -56,14 +57,14 @@ protected:
    *
    *  @param  subDetectorTypeMap the sub detector type map
    */
-  void SetMandatorySubDetectorParameters(SubDetectorTypeMap& subDetectorTypeMap) const;
+  virtual void SetMandatorySubDetectorParameters(SubDetectorTypeMap& subDetectorTypeMap) const;
 
   /**
    *  @brief  Set additional sub detector parameters
    *
    *  @param  subDetectorNameMap the sub detector name map (for smaller sub detectors, identified uniquely only by name)
    */
-  void SetAdditionalSubDetectorParameters(SubDetectorNameMap& subDetectorNameMap) const;
+  virtual void SetAdditionalSubDetectorParameters(SubDetectorNameMap& subDetectorNameMap) const;
 
   /**
    *  @brief  Set sub detector parameters to their gear default values

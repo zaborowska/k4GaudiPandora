@@ -30,6 +30,7 @@
 #include "DDTrackCreatorALLEGRO.h"
 
 #include "DDBFieldPlugin.h"
+#include "ODDPseudoLayerPlugin.h"
 
 #include "DDGeometryCreatorODD.h"
 #include "DDTrackCreatorCLIC.h"
@@ -287,7 +288,16 @@ const pandora::Pandora* DDPandoraPFANewAlgorithm::GetPandora() const {
 
 pandora::StatusCode DDPandoraPFANewAlgorithm::registerUserComponents() const {
   PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, LCContent::RegisterAlgorithms(m_pPandora))
-  PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, LCContent::RegisterBasicPlugins(m_pPandora))
+
+  const bool useOddGeometry =
+      (m_settings.m_detectorName == "ODD" || m_settings.m_trackCreatorName == "DDTrackCreatorEmpty");
+
+  if (useOddGeometry) {
+    PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=,
+                             PandoraApi::SetPseudoLayerPlugin(m_pPandora, new ODDPseudoLayerPlugin()))
+  } else {
+    PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, LCContent::RegisterBasicPlugins(m_pPandora))
+  }
 
   if (m_settings.m_useDD4hepField) {
     dd4hep::Detector& mainDetector = dd4hep::Detector::getInstance();
