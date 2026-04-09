@@ -451,8 +451,11 @@ void DDPandoraPFANewAlgorithm::finaliseSteeringParameters() {
   //  const dd4hep::rec::LayeredCalorimeterData * muonEndcapExtension= getExtension( ( dd4hep::DetType::CALORIMETER |
   //  dd4hep::DetType::MUON | dd4hep::DetType::ENDCAP),  log, ( dd4hep::DetType::AUXILIARY ) );
 
-  // Get COIL extension
-  const dd4hep::rec::LayeredCalorimeterData* coilExtension = getExtension((dd4hep::DetType::COIL));
+  const dd4hep::rec::LayeredCalorimeterData* coilExtension = nullptr;
+  if (!useOddGeometry) {
+    // Get COIL extension
+    coilExtension = getExtension((dd4hep::DetType::COIL));
+  }
 
   m_trackCreatorSettings.m_eCalBarrelInnerSymmetry = eCalBarrelExtension->inner_symmetry;
   m_trackCreatorSettings.m_eCalBarrelInnerPhi0 = eCalBarrelExtension->inner_phi0 / dd4hep::rad;
@@ -463,7 +466,8 @@ void DDPandoraPFANewAlgorithm::finaliseSteeringParameters() {
   m_caloHitCreatorSettings.m_hCalBarrelOuterZ = hCalBarrelExtension->extent[3] / dd4hep::mm;
   m_caloHitCreatorSettings.m_muonBarrelOuterZ =
       useOddGeometry ? hCalBarrelExtension->extent[3] / dd4hep::mm : muonBarrelExtension->extent[3] / dd4hep::mm;
-  m_caloHitCreatorSettings.m_coilOuterR = coilExtension->extent[1] / dd4hep::mm;
+  m_caloHitCreatorSettings.m_coilOuterR =
+      useOddGeometry ? hCalBarrelExtension->extent[1] / dd4hep::mm : coilExtension->extent[1] / dd4hep::mm;
   m_caloHitCreatorSettings.m_eCalBarrelInnerPhi0 = eCalBarrelExtension->inner_phi0 / dd4hep::rad;
   m_caloHitCreatorSettings.m_eCalBarrelInnerSymmetry = eCalBarrelExtension->inner_symmetry;
   m_caloHitCreatorSettings.m_hCalBarrelInnerPhi0 = hCalBarrelExtension->inner_phi0 / dd4hep::rad;
