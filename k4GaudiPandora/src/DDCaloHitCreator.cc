@@ -271,11 +271,11 @@ DDCaloHitCreator::createMuonCaloHits(const std::vector<edm4hep::CalorimeterHit>&
   dd4hep::DDSegmentation::BitFieldCoder bitFieldCoder(initString);
 
   const std::vector<dd4hep::rec::LayeredCalorimeterStruct::Layer>& barrelLayers =
-      getExtension((dd4hep::DetType::CALORIMETER | dd4hep::DetType::MUON | dd4hep::DetType::BARREL),
+      getExtension((dd4hep::DetType::MUON | dd4hep::DetType::BARREL),
                    (dd4hep::DetType::AUXILIARY | dd4hep::DetType::FORWARD))
           ->layers;
   const std::vector<dd4hep::rec::LayeredCalorimeterStruct::Layer>& endcapLayers =
-      getExtension((dd4hep::DetType::CALORIMETER | dd4hep::DetType::MUON | dd4hep::DetType::ENDCAP),
+      getExtension((dd4hep::DetType::MUON | dd4hep::DetType::ENDCAP),
                    (dd4hep::DetType::AUXILIARY | dd4hep::DetType::FORWARD))
           ->layers;
 
