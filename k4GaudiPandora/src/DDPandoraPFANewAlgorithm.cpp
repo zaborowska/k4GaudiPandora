@@ -438,7 +438,7 @@ void DDPandoraPFANewAlgorithm::finaliseSteeringParameters() {
                    (dd4hep::DetType::AUXILIARY | dd4hep::DetType::FORWARD));
   // Get Muon Barrel extension by type, ignore plugs and rings
   const dd4hep::rec::LayeredCalorimeterData* muonBarrelExtension =
-      getExtension((dd4hep::DetType::MUON | dd4hep::DetType::BARREL),
+      getExtension((dd4hep::DetType::CALORIMETER | dd4hep::DetType::MUON | dd4hep::DetType::BARREL),
                    (dd4hep::DetType::AUXILIARY | dd4hep::DetType::FORWARD));
   // fg: muon endcap is not used :
   //  //Get Muon Endcap extension by type, ignore plugs and rings

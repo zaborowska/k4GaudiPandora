@@ -91,12 +91,12 @@ void DDGeometryCreatorALLEGRO::SetMandatorySubDetectorParameters(SubDetectorType
       "HCalEndCap", pandora::HCAL_ENDCAP, hCalEndCapParameters);
   this->SetDefaultSubDetectorParameters(
       *const_cast<dd4hep::rec::LayeredCalorimeterData*>(
-          getExtension((dd4hep::DetType::MUON | dd4hep::DetType::BARREL),
+          getExtension((dd4hep::DetType::CALORIMETER | dd4hep::DetType::MUON | dd4hep::DetType::BARREL),
                        (dd4hep::DetType::AUXILIARY | dd4hep::DetType::FORWARD))),
       "MuonBarrel", pandora::MUON_BARREL, muonBarrelParameters);
   this->SetDefaultSubDetectorParameters(
       *const_cast<dd4hep::rec::LayeredCalorimeterData*>(
-          getExtension((dd4hep::DetType::MUON | dd4hep::DetType::ENDCAP),
+          getExtension((dd4hep::DetType::CALORIMETER | dd4hep::DetType::MUON | dd4hep::DetType::ENDCAP),
                        (dd4hep::DetType::AUXILIARY | dd4hep::DetType::FORWARD))),
       "MuonEndCap", pandora::MUON_ENDCAP, muonEndCapParameters);
 

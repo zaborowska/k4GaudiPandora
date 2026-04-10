@@ -106,12 +106,12 @@ void DDGeometryCreator::SetMandatorySubDetectorParameters(SubDetectorTypeMap& su
       "HCalEndCap", pandora::HCAL_ENDCAP, hCalEndCapParameters);
   this->SetDefaultSubDetectorParameters(
       *const_cast<dd4hep::rec::LayeredCalorimeterData*>(
-          getExtension((dd4hep::DetType::MUON | dd4hep::DetType::BARREL),
+          getExtension((dd4hep::DetType::CALORIMETER | dd4hep::DetType::MUON | dd4hep::DetType::BARREL),
                        (dd4hep::DetType::AUXILIARY | dd4hep::DetType::FORWARD))),
       "MuonBarrel", pandora::MUON_BARREL, muonBarrelParameters);
   this->SetDefaultSubDetectorParameters(
       *const_cast<dd4hep::rec::LayeredCalorimeterData*>(
-          getExtension((dd4hep::DetType::MUON | dd4hep::DetType::ENDCAP),
+          getExtension((dd4hep::DetType::CALORIMETER | dd4hep::DetType::MUON | dd4hep::DetType::ENDCAP),
                        (dd4hep::DetType::AUXILIARY | dd4hep::DetType::FORWARD))),
       "MuonEndCap", pandora::MUON_ENDCAP, muonEndCapParameters);
 
@@ -211,7 +211,7 @@ void DDGeometryCreator::SetAdditionalSubDetectorParameters(SubDetectorNameMap& s
 
   const std::vector<dd4hep::DetElement>& theMuonOtherDetectors =
       dd4hep::DetectorSelector(mainDetector)
-          .detectors(dd4hep::DetType::MUON | dd4hep::DetType::AUXILIARY);
+          .detectors(dd4hep::DetType::CALORIMETER | dd4hep::DetType::MUON | dd4hep::DetType::AUXILIARY);
   for (std::vector<dd4hep::DetElement>::const_iterator iter = theMuonOtherDetectors.begin(),
                                                        iterEnd = theMuonOtherDetectors.end();
        iter != iterEnd; ++iter) {
