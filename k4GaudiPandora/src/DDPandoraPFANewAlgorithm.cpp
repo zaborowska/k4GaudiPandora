@@ -30,9 +30,6 @@
 #include "DDTrackCreatorALLEGRO.h"
 
 #include "DDBFieldPlugin.h"
-#include "ODDPseudoLayerPlugin.h"
-
-#include "DDGeometryCreatorODD.h"
 #include "DDTrackCreatorCLIC.h"
 #include "DDTrackCreatorEmpty.h"
 #include "DDTrackCreatorILD.h"
@@ -137,7 +134,7 @@ StatusCode DDPandoraPFANewAlgorithm::initialize() {
     m_geometryCreator = std::make_unique<DDGeometryCreatorALLEGRO>(m_geometryCreatorSettings, m_pPandora, this);
     m_caloHitCreator = std::make_unique<DDCaloHitCreatorALLEGRO>(m_caloHitCreatorSettings, m_pPandora, this);
   } else if (m_settings.m_detectorName == "ODD" || m_settings.m_trackCreatorName == "DDTrackCreatorEmpty") {
-    m_geometryCreator = std::make_unique<DDGeometryCreatorODD>(m_geometryCreatorSettings, m_pPandora, this);
+    m_geometryCreator = std::make_unique<DDGeometryCreator>(m_geometryCreatorSettings, m_pPandora, this);
     m_caloHitCreator = std::make_unique<DDCaloHitCreator>(m_caloHitCreatorSettings, m_pPandora, this);
   } else {
     m_geometryCreator = std::make_unique<DDGeometryCreator>(m_geometryCreatorSettings, m_pPandora, this);
@@ -288,16 +285,7 @@ const pandora::Pandora* DDPandoraPFANewAlgorithm::GetPandora() const {
 
 pandora::StatusCode DDPandoraPFANewAlgorithm::registerUserComponents() const {
   PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, LCContent::RegisterAlgorithms(m_pPandora))
-
-  const bool useOddGeometry =
-      (m_settings.m_detectorName == "ODD" || m_settings.m_trackCreatorName == "DDTrackCreatorEmpty");
-
-  if (useOddGeometry) {
-    PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=,
-                             PandoraApi::SetPseudoLayerPlugin(m_pPandora, new ODDPseudoLayerPlugin()))
-  } else {
-    PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, LCContent::RegisterBasicPlugins(m_pPandora))
-  }
+  PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, LCContent::RegisterBasicPlugins(m_pPandora))
 
   if (m_settings.m_useDD4hepField) {
     dd4hep::Detector& mainDetector = dd4hep::Detector::getInstance();
@@ -448,24 +436,17 @@ void DDPandoraPFANewAlgorithm::finaliseSteeringParameters() {
   const dd4hep::rec::LayeredCalorimeterData* hCalEndcapExtension =
       getExtension((dd4hep::DetType::CALORIMETER | dd4hep::DetType::HADRONIC | dd4hep::DetType::ENDCAP),
                    (dd4hep::DetType::AUXILIARY | dd4hep::DetType::FORWARD));
-  const bool useOddGeometry =
-      (m_settings.m_detectorName == "ODD" || m_settings.m_trackCreatorName == "DDTrackCreatorEmpty");
-  const dd4hep::rec::LayeredCalorimeterData* muonBarrelExtension = nullptr;
-  if (!useOddGeometry) {
-    // Get Muon Barrel extension by type, ignore plugs and rings
-    muonBarrelExtension = getExtension((dd4hep::DetType::CALORIMETER | dd4hep::DetType::MUON | dd4hep::DetType::BARREL),
-                                       (dd4hep::DetType::AUXILIARY | dd4hep::DetType::FORWARD));
-  }
+  // Get Muon Barrel extension by type, ignore plugs and rings
+  const dd4hep::rec::LayeredCalorimeterData* muonBarrelExtension =
+      getExtension((dd4hep::DetType::CALORIMETER | dd4hep::DetType::MUON | dd4hep::DetType::BARREL),
+                   (dd4hep::DetType::AUXILIARY | dd4hep::DetType::FORWARD));
   // fg: muon endcap is not used :
   //  //Get Muon Endcap extension by type, ignore plugs and rings
   //  const dd4hep::rec::LayeredCalorimeterData * muonEndcapExtension= getExtension( ( dd4hep::DetType::CALORIMETER |
   //  dd4hep::DetType::MUON | dd4hep::DetType::ENDCAP),  log, ( dd4hep::DetType::AUXILIARY ) );
 
-  const dd4hep::rec::LayeredCalorimeterData* coilExtension = nullptr;
-  if (!useOddGeometry) {
-    // Get COIL extension
-    coilExtension = getExtension((dd4hep::DetType::COIL));
-  }
+  // Get COIL extension
+  const dd4hep::rec::LayeredCalorimeterData* coilExtension = getExtension((dd4hep::DetType::COIL));
 
   m_trackCreatorSettings.m_eCalBarrelInnerSymmetry = eCalBarrelExtension->inner_symmetry;
   m_trackCreatorSettings.m_eCalBarrelInnerPhi0 = eCalBarrelExtension->inner_phi0 / dd4hep::rad;
@@ -474,18 +455,14 @@ void DDPandoraPFANewAlgorithm::finaliseSteeringParameters() {
 
   m_caloHitCreatorSettings.m_eCalBarrelOuterZ = eCalBarrelExtension->extent[3] / dd4hep::mm;
   m_caloHitCreatorSettings.m_hCalBarrelOuterZ = hCalBarrelExtension->extent[3] / dd4hep::mm;
-  m_caloHitCreatorSettings.m_muonBarrelOuterZ =
-      useOddGeometry ? hCalBarrelExtension->extent[3] / dd4hep::mm : muonBarrelExtension->extent[3] / dd4hep::mm;
-  m_caloHitCreatorSettings.m_coilOuterR =
-      useOddGeometry ? hCalBarrelExtension->extent[1] / dd4hep::mm : coilExtension->extent[1] / dd4hep::mm;
+  m_caloHitCreatorSettings.m_muonBarrelOuterZ = muonBarrelExtension->extent[3] / dd4hep::mm;
+  m_caloHitCreatorSettings.m_coilOuterR = coilExtension->extent[1] / dd4hep::mm;
   m_caloHitCreatorSettings.m_eCalBarrelInnerPhi0 = eCalBarrelExtension->inner_phi0 / dd4hep::rad;
   m_caloHitCreatorSettings.m_eCalBarrelInnerSymmetry = eCalBarrelExtension->inner_symmetry;
   m_caloHitCreatorSettings.m_hCalBarrelInnerPhi0 = hCalBarrelExtension->inner_phi0 / dd4hep::rad;
   m_caloHitCreatorSettings.m_hCalBarrelInnerSymmetry = hCalBarrelExtension->inner_symmetry;
-  m_caloHitCreatorSettings.m_muonBarrelInnerPhi0 =
-      useOddGeometry ? hCalBarrelExtension->inner_phi0 / dd4hep::rad : muonBarrelExtension->inner_phi0 / dd4hep::rad;
-  m_caloHitCreatorSettings.m_muonBarrelInnerSymmetry =
-      useOddGeometry ? hCalBarrelExtension->inner_symmetry : muonBarrelExtension->inner_symmetry;
+  m_caloHitCreatorSettings.m_muonBarrelInnerPhi0 = muonBarrelExtension->inner_phi0 / dd4hep::rad;
+  m_caloHitCreatorSettings.m_muonBarrelInnerSymmetry = muonBarrelExtension->inner_symmetry;
   m_caloHitCreatorSettings.m_hCalEndCapOuterR = hCalEndcapExtension->extent[1] / dd4hep::mm;
   m_caloHitCreatorSettings.m_hCalEndCapOuterZ = hCalEndcapExtension->extent[3] / dd4hep::mm;
   m_caloHitCreatorSettings.m_hCalBarrelOuterR = hCalBarrelExtension->extent[1] / dd4hep::mm;

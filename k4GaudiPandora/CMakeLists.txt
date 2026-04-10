@@ -23,7 +23,6 @@ set(_plugin_sources ${CMAKE_CURRENT_LIST_DIR}/
                     src/DDCaloDigi.cc
                     src/DDScintillatorPpdDigi.cc
                     src/DDBFieldPlugin.cc
-                    src/ODDPseudoLayerPlugin.cc
                     src/DDCaloHitCreator.cc
                     # src/DDExternalClusteringAlgorithm.cc
                     src/DDGeometryCreator.cc
@@ -34,7 +33,6 @@ set(_plugin_sources ${CMAKE_CURRENT_LIST_DIR}/
                     src/DDTrackCreatorCLIC.cc
                     src/DDTrackCreatorILD.cc
                     src/DDTrackCreatorEmpty.cc
-                    src/DDGeometryCreatorODD.cc
                     src/DDPandoraPFANewAlgorithm.cpp
                     src/DDGeometryCreatorALLEGRO.cc
                     src/DDTrackCreatorALLEGRO.cc
