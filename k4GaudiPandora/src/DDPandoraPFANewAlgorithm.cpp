@@ -154,7 +154,7 @@ StatusCode DDPandoraPFANewAlgorithm::initialize() {
     error() << "Unknown DDTrackCreator: " << m_settings.m_trackCreatorName << endmsg;
 
   m_pDDMCParticleCreator = std::make_unique<DDMCParticleCreator>(m_mcParticleCreatorSettings, m_pPandora, this);
-  m_pfoCreator = std::make_unique<DDPfoCreator>(m_pfoCreatorSettings, m_pPandora, this);
+  m_pfoCreator = std::make_unique<DDPfoCreator>(m_pfoCreatorSettings, m_pPandora, m_caloHitCreator.get(), this);
 
   PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, registerUserComponents())
   PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, m_geometryCreator->CreateGeometry())

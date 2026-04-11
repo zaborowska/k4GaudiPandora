@@ -21,6 +21,7 @@
 
 #include "CalorimeterHitType.h"
 #include "ClusterShapes.h"
+#include "DDCaloHitCreator.h"
 
 #include "Api/PandoraApi.h"
 
@@ -47,8 +48,9 @@
 #include <algorithm>
 #include <cmath>
 
-DDPfoCreator::DDPfoCreator(const Settings& settings, pandora::Pandora& pandora, const Gaudi::Algorithm* algorithm)
-    : m_settings(settings), m_pandora(pandora), m_algorithm(*algorithm) {}
+DDPfoCreator::DDPfoCreator(const Settings& settings, pandora::Pandora& pandora,
+                           const DDCaloHitCreator* caloHitCreator, const Gaudi::Algorithm* algorithm)
+    : m_settings(settings), m_pandora(pandora), m_caloHitCreator(caloHitCreator), m_algorithm(*algorithm) {}
 
 pandora::StatusCode
 DDPfoCreator::CreateParticleFlowObjects(edm4hep::ClusterCollection& pClusterCollection,
@@ -147,17 +149,23 @@ void DDPfoCreator::setClusterSubDetectorEnergies(const pandora::StringVector& su
     subDetectorEnergies.push_back(0.f);
   }
   for (const auto* pPandoraCaloHit : pandoraCaloHitList) {
-    const auto& pCalorimeterHit = *static_cast<const edm4hep::CalorimeterHit*>(pPandoraCaloHit->GetParentAddress());
+    const auto* pCalorimeterHit = m_caloHitCreator->GetCalorimeterHit(pPandoraCaloHit->GetParentAddress());
+    if (pCalorimeterHit == nullptr) {
+      m_algorithm.warning() << "DDPfoCreator::setClusterSubDetectorEnergies: missing EDM calorimeter hit for Pandora "
+                               "hit address "
+                            << pPandoraCaloHit->GetParentAddress() << endmsg;
+      continue;
+    }
 
-    cluster.addToHits(pCalorimeterHit);
+    cluster.addToHits(*pCalorimeterHit);
 
-    const float caloHitEnergy = pCalorimeterHit.getEnergy();
+    const float caloHitEnergy = pCalorimeterHit->getEnergy();
     hitE.push_back(caloHitEnergy);
-    hitX.push_back(pCalorimeterHit.getPosition()[0]);
-    hitY.push_back(pCalorimeterHit.getPosition()[1]);
-    hitZ.push_back(pCalorimeterHit.getPosition()[2]);
+    hitX.push_back(pCalorimeterHit->getPosition()[0]);
+    hitY.push_back(pCalorimeterHit->getPosition()[1]);
+    hitZ.push_back(pCalorimeterHit->getPosition()[2]);
 
-    switch (CHT(pCalorimeterHit.getType()).caloID()) {
+    switch (CHT(pCalorimeterHit->getType()).caloID()) {
     case CHT::ecal:
       subDetectorEnergies[ECAL_INDEX] += caloHitEnergy;
       break;
@@ -178,7 +186,7 @@ void DDPfoCreator::setClusterSubDetectorEnergies(const pandora::StringVector& su
       break;
     default:
       m_algorithm.warning() << "DDPfoCreator::setClusterSubDetectorEnergies: no subdetector found for hit with type: "
-                            << pCalorimeterHit.getType() << endmsg;
+                            << pCalorimeterHit->getType() << endmsg;
       break; // pass
     }
   }

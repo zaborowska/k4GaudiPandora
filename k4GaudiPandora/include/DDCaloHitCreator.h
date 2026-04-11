@@ -29,7 +29,9 @@
 #include <edm4hep/CalorimeterHit.h>
 #include <edm4hep/CalorimeterHitCollection.h>
 
+#include <map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "GaudiKernel/Algorithm.h"
@@ -162,6 +164,15 @@ public:
   const CalorimeterHitVector& GetCalorimeterHitVector() const;
 
   /**
+   *  @brief  Resolve a stable Pandora hit address back to the original EDM hit for the current event
+   *
+   *  @param  address the stable hit address stored in Pandora
+   *
+   *  @return pointer to the EDM hit, or nullptr if the address is unknown
+   */
+  const edm4hep::CalorimeterHit* GetCalorimeterHit(const void* address) const;
+
+  /**
    *  @brief  Reset the calo hit creator
    */
   void Reset();
@@ -232,6 +243,8 @@ protected:
   float m_hCalEndCapLayerThickness; ///< HCal endcap layer thickness
 
   CalorimeterHitVector m_calorimeterHitVector; ///< The calorimeter hit vector
+  mutable std::unordered_map<uint64_t, const edm4hep::CalorimeterHit*>
+      m_caloHitLookup; ///< Event-local map from stable Pandora hit key to EDM hit
 
   dd4hep::VolumeManager m_volumeManager; ///< DD4hep volume manager
 

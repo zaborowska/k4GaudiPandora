@@ -34,6 +34,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <string>
 #include <vector>
@@ -42,10 +43,12 @@
 dd4hep::rec::LayeredCalorimeterData* getExtension(unsigned int includeFlag, unsigned int excludeFlag = 0);
 
 namespace {
-const void* getHitAddress(const edm4hep::CalorimeterHit& hit) {
-  const auto objectID = hit.getObjectID();
-  return reinterpret_cast<const void*>((static_cast<uint64_t>(objectID.collectionID) << 32) |
-                                       static_cast<uint32_t>(objectID.index));
+uint64_t getObjectKey(const podio::ObjectID& objectID) {
+  return (static_cast<uint64_t>(objectID.collectionID) << 32) | static_cast<uint32_t>(objectID.index);
+}
+
+const void* getObjectAddress(const podio::ObjectID& objectID) {
+  return reinterpret_cast<const void*>(getObjectKey(objectID));
 }
 } // namespace
 
@@ -90,6 +93,7 @@ DDCaloHitCreator::createCaloHits(const std::map<std::string, std::vector<edm4hep
                                  const std::vector<edm4hep::CalorimeterHit>& muonCaloHits,
                                  const std::vector<edm4hep::CalorimeterHit>& lCalCaloHits,
                                  const std::vector<edm4hep::CalorimeterHit>& lhCalCaloHits) const {
+  m_caloHitLookup.clear();
   PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, createECalCaloHits(eCaloHitsMap))
   PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, createHCalCaloHits(hCalCaloHits))
   PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, createMuonCaloHits(muonCaloHits))
@@ -458,13 +462,16 @@ void DDCaloHitCreator::getCommonCaloHitProperties(const edm4hep::CalorimeterHit&
                                                   PandoraApi::CaloHit::Parameters& caloHitParameters) const {
   const auto position = hit.getPosition();
   const pandora::CartesianVector positionVector(position.x, position.y, position.z);
+  const auto hitKey = getObjectKey(hit.getObjectID());
 
   caloHitParameters.m_cellGeometry = pandora::RECTANGULAR;
   caloHitParameters.m_positionVector = positionVector;
   caloHitParameters.m_expectedDirection = positionVector.GetUnitVector();
-  caloHitParameters.m_pParentAddress = getHitAddress(hit);
+  // Pandora uses stable collectionID/index keys for truth links; EDM export resolves them via m_caloHitLookup.
+  caloHitParameters.m_pParentAddress = getObjectAddress(hit.getObjectID());
   caloHitParameters.m_inputEnergy = hit.getEnergy();
   caloHitParameters.m_time = hit.getTime();
+  m_caloHitLookup[hitKey] = &hit;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -698,3 +705,8 @@ DDCaloHitCreator::Settings::Settings()
       m_hCalBarrelNormalVector({0.0, 0.0, 1.0}), m_muonBarrelNormalVector({0.0, 0.0, 1.0}) {}
 
 const CalorimeterHitVector& DDCaloHitCreator::GetCalorimeterHitVector() const { return m_calorimeterHitVector; }
+
+const edm4hep::CalorimeterHit* DDCaloHitCreator::GetCalorimeterHit(const void* address) const {
+  const auto iter = m_caloHitLookup.find(reinterpret_cast<uint64_t>(address));
+  return (iter == m_caloHitLookup.end()) ? nullptr : iter->second;
+}
