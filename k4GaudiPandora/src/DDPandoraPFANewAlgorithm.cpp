@@ -45,6 +45,7 @@
 #include <DDRec/DetectorData.h>
 
 #include <cstdlib>
+#include <new>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -271,7 +272,18 @@ DDPandoraPFANewAlgorithm::operator()(const std::vector<const edm4hep::MCParticle
   }
 }
 
-StatusCode DDPandoraPFANewAlgorithm::finalize() { return StatusCode::SUCCESS; }
+StatusCode DDPandoraPFANewAlgorithm::finalize() {
+  m_pfoCreator.reset();
+  m_pDDMCParticleCreator.reset();
+  m_pTrackCreator.reset();
+  m_caloHitCreator.reset();
+  m_geometryCreator.reset();
+
+  m_pPandora.~Pandora();
+  new (&m_pPandora) pandora::Pandora();
+
+  return StatusCode::SUCCESS;
+}
 
 const pandora::Pandora* DDPandoraPFANewAlgorithm::GetPandora() const {
   // Always valid, since m_pPandora is now a direct member
