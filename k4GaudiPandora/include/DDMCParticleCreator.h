@@ -30,6 +30,7 @@
 
 #include "Gaudi/Algorithm.h"
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -62,7 +63,7 @@ public:
    */
   DDMCParticleCreator(const Settings& settings, pandora::Pandora& pandora, const Gaudi::Algorithm* algorithm);
 
-  pandora::StatusCode CreateMCParticles(const std::vector<edm4hep::MCParticle>& mcParticleCollections) const;
+  pandora::StatusCode CreateMCParticles(const MCPCollectionVector& mcParticleCollections) const;
 
   /**
    *  @brief  Create Track to MCParticle relationships
@@ -76,12 +77,18 @@ public:
   /**
    *  @brief  Create CaloHit to MCParticle relationships
    *
-   *  @param  collectionMaps The collection map containing input data
-   *  @param  calorimeterHitVector Vector of calorimeter hits
+   *  @param  caloRelCollections Relation collections linking reconstructed and simulated calo hits
+   *  @param  eCalHitsMap Input ECal hit collections, preserving the addresses used to create Pandora hits
+   *  @param  hCalHits Input HCal hits
+   *  @param  muonHits Input Muon hits
+   *  @param  lCalHits Input LCal hits
+   *  @param  lhCalHits Input LHCal hits
    */
   pandora::StatusCode
-  CreateCaloHitToMCParticleRelationships(const CaloHitSimCaloHitLinkCollectionVector& caloRelCollections,
-                                         const HitVector& calorimeterHitVector) const;
+  CreateCaloHitToMCParticleRelationships(
+      const CaloHitSimCaloHitLinkCollectionVector& caloRelCollections,
+      const std::map<std::string, std::vector<edm4hep::CalorimeterHit>>& eCalHitsMap, const HitVector& hCalHits,
+      const HitVector& muonHits, const HitVector& lCalHits, const HitVector& lhCalHits) const;
 
 private:
   const Settings m_settings;           ///< The mc particle creator settings

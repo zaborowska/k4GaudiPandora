@@ -41,6 +41,14 @@
 // dd4hep::rec::LayeredCalorimeterData * getExtension(std::string detectorName);
 dd4hep::rec::LayeredCalorimeterData* getExtension(unsigned int includeFlag, unsigned int excludeFlag = 0);
 
+namespace {
+const void* getHitAddress(const edm4hep::CalorimeterHit& hit) {
+  const auto objectID = hit.getObjectID();
+  return reinterpret_cast<const void*>((static_cast<uint64_t>(objectID.collectionID) << 32) |
+                                       static_cast<uint32_t>(objectID.index));
+}
+} // namespace
+
 // double getCoilOuterR();
 
 /// FIXME: HANDLE PROBLEM WHEN EXTENSION IS MISSING
@@ -454,7 +462,7 @@ void DDCaloHitCreator::getCommonCaloHitProperties(const edm4hep::CalorimeterHit&
   caloHitParameters.m_cellGeometry = pandora::RECTANGULAR;
   caloHitParameters.m_positionVector = positionVector;
   caloHitParameters.m_expectedDirection = positionVector.GetUnitVector();
-  caloHitParameters.m_pParentAddress = static_cast<const void*>(&hit);
+  caloHitParameters.m_pParentAddress = getHitAddress(hit);
   caloHitParameters.m_inputEnergy = hit.getEnergy();
   caloHitParameters.m_time = hit.getTime();
 }

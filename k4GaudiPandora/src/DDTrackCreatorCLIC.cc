@@ -160,7 +160,7 @@ pandora::StatusCode DDTrackCreatorCLIC::CreateTracks(const std::vector<edm4hep::
     lc_content::LCTrackParameters trackParameters;
     trackParameters.m_d0 = trackState.D0;
     trackParameters.m_z0 = trackState.Z0;
-    trackParameters.m_pParentAddress = &pTrack;
+    trackParameters.m_pParentAddress = GetTrackIDStar(pTrack);
 
     // By default, assume tracks are charged pions
     const float signedCurvature = trackState.omega;

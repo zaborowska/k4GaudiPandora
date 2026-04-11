@@ -39,33 +39,51 @@
 // forward declarations. See in DDPandoraPFANewProcessor.cc
 double getFieldFromCompact();
 
+namespace {
+uint64_t getObjectKey(const podio::ObjectID& objectID) {
+  return (static_cast<uint64_t>(objectID.collectionID) << 32) | static_cast<uint32_t>(objectID.index);
+}
+
+const void* getObjectAddress(const podio::ObjectID& objectID) {
+  return reinterpret_cast<const void*>(getObjectKey(objectID));
+}
+} // namespace
+
 DDMCParticleCreator::DDMCParticleCreator(const Settings& settings, pandora::Pandora& pandora,
                                          const Gaudi::Algorithm* algorithm)
     : m_settings(settings), m_pandora(pandora), m_bField(getFieldFromCompact()), m_algorithm(*algorithm) {}
 
 pandora::StatusCode
-DDMCParticleCreator::CreateMCParticles(const std::vector<edm4hep::MCParticle>& mcParticleCollections) const {
+DDMCParticleCreator::CreateMCParticles(const MCPCollectionVector& mcParticleCollections) const {
 
-  for (const auto& mcParticle : mcParticleCollections) {
-    PandoraApi::MCParticle::Parameters mcParticleParameters;
-    mcParticleParameters.m_energy = mcParticle.getEnergy();
-    mcParticleParameters.m_particleId = mcParticle.getPDG();
-    mcParticleParameters.m_mcParticleType = pandora::MC_3D;
-    mcParticleParameters.m_pParentAddress = &mcParticle;
-    mcParticleParameters.m_momentum =
-        pandora::CartesianVector(mcParticle.getMomentum().x, mcParticle.getMomentum().y, mcParticle.getMomentum().z);
-    mcParticleParameters.m_vertex =
-        pandora::CartesianVector(mcParticle.getVertex().x, mcParticle.getVertex().y, mcParticle.getVertex().z);
-    mcParticleParameters.m_endpoint =
-        pandora::CartesianVector(mcParticle.getEndpoint().x, mcParticle.getEndpoint().y, mcParticle.getEndpoint().z);
+  for (const auto* mcParticleCollection : mcParticleCollections) {
+    if (mcParticleCollection == nullptr) {
+      continue;
+    }
 
-    PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=,
-                            PandoraApi::MCParticle::Create(m_pandora, mcParticleParameters))
+    for (const auto& mcParticle : *mcParticleCollection) {
+      PandoraApi::MCParticle::Parameters mcParticleParameters;
+      mcParticleParameters.m_energy = mcParticle.getEnergy();
+      mcParticleParameters.m_particleId = mcParticle.getPDG();
+      mcParticleParameters.m_mcParticleType = pandora::MC_3D;
+      mcParticleParameters.m_pParentAddress = getObjectAddress(mcParticle.getObjectID());
+      mcParticleParameters.m_momentum =
+          pandora::CartesianVector(mcParticle.getMomentum().x, mcParticle.getMomentum().y, mcParticle.getMomentum().z);
+      mcParticleParameters.m_vertex =
+          pandora::CartesianVector(mcParticle.getVertex().x, mcParticle.getVertex().y, mcParticle.getVertex().z);
+      mcParticleParameters.m_endpoint =
+          pandora::CartesianVector(mcParticle.getEndpoint().x, mcParticle.getEndpoint().y, mcParticle.getEndpoint().z);
 
-    // Create parent-daughter relationships
-    for (const auto& daughter : mcParticle.getDaughters()) {
       PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=,
-                              PandoraApi::SetMCParentDaughterRelationship(m_pandora, &mcParticle, &daughter))
+                              PandoraApi::MCParticle::Create(m_pandora, mcParticleParameters))
+
+      // Create parent-daughter relationships
+      for (const auto& daughter : mcParticle.getDaughters()) {
+        PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=,
+                                PandoraApi::SetMCParentDaughterRelationship(
+                                    m_pandora, getObjectAddress(mcParticle.getObjectID()),
+                                    getObjectAddress(daughter.getObjectID())))
+      }
     }
   }
 
@@ -75,7 +93,6 @@ DDMCParticleCreator::CreateMCParticles(const std::vector<edm4hep::MCParticle>& m
 pandora::StatusCode
 DDMCParticleCreator::CreateTrackToMCParticleRelationships(const TrackMCLinkCollectionVector& trackRelCollections,
                                                           const TrackVector& trackVector) const {
-  throw std::runtime_error("DDMCParticleCreator::CreateTrackToMCParticleRelationships not implemented yet");
   for (const auto& trackRelCollection : trackRelCollections) {
     for (const auto& pTrack : trackVector) {
       try {
@@ -94,7 +111,9 @@ DDMCParticleCreator::CreateTrackToMCParticleRelationships(const TrackMCLinkColle
 
         for (const auto&& trackMCRel : *trackRelCollection) {
           // if the track relation does not match the track, continue
-          if (trackMCRel.get<edm4hep::Track>().id() != pTrack.id())
+          const auto& linkedTrack = trackMCRel.get<edm4hep::Track>();
+          if (linkedTrack.getObjectID().collectionID != pTrack.getObjectID().collectionID ||
+              linkedTrack.getObjectID().index != pTrack.getObjectID().index)
             continue;
 
           auto const& mcParticle = trackMCRel.get<edm4hep::MCParticle>();
@@ -116,7 +135,12 @@ DDMCParticleCreator::CreateTrackToMCParticleRelationships(const TrackMCLinkColle
         }
 
         PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=,
-                                PandoraApi::SetTrackToMCParticleRelationship(m_pandora, &pTrack, pBestMCParticle))
+                                PandoraApi::SetTrackToMCParticleRelationship(
+                                    m_pandora,
+                                    reinterpret_cast<const void*>(
+                                        (static_cast<uint64_t>(pTrack.getObjectID().collectionID) << 32) |
+                                        static_cast<uint32_t>(pTrack.getObjectID().index)),
+                                    getObjectAddress(pBestMCParticle->getObjectID())))
 
       } catch (const pandora::StatusCodeException& statusCodeException) {
         m_algorithm.error() << "Failed to extract track to MC particle relationship: " << statusCodeException.ToString()
@@ -133,41 +157,59 @@ DDMCParticleCreator::CreateTrackToMCParticleRelationships(const TrackMCLinkColle
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 pandora::StatusCode DDMCParticleCreator::CreateCaloHitToMCParticleRelationships(
-    const CaloHitSimCaloHitLinkCollectionVector& caloRelCollections, const HitVector& calorimeterHitVector) const {
-  throw std::runtime_error("DDMCParticleCreator::CreateCaloHitToMCParticleRelationships not implemented yet");
+    const CaloHitSimCaloHitLinkCollectionVector& caloRelCollections,
+    const std::map<std::string, std::vector<edm4hep::CalorimeterHit>>& eCalHitsMap, const HitVector& hCalHits,
+    const HitVector& muonHits, const HitVector& lCalHits, const HitVector& lhCalHits) const {
   using MCParticleToEnergyWeightMap = std::map<const edm4hep::MCParticle*, float>;
   MCParticleToEnergyWeightMap mcParticleToEnergyWeightMap;
+  std::vector<const edm4hep::CalorimeterHit*> calorimeterHitVector;
+
+  for (const auto& [_, hits] : eCalHitsMap) {
+    for (const auto& hit : hits) {
+      calorimeterHitVector.push_back(&hit);
+    }
+  }
+  for (const auto& hit : hCalHits) {
+    calorimeterHitVector.push_back(&hit);
+  }
+  for (const auto& hit : muonHits) {
+    calorimeterHitVector.push_back(&hit);
+  }
+  for (const auto& hit : lCalHits) {
+    calorimeterHitVector.push_back(&hit);
+  }
+  for (const auto& hit : lhCalHits) {
+    calorimeterHitVector.push_back(&hit);
+  }
 
   for (const auto& hitRelCollection : caloRelCollections) {
-    for (const auto& caloHit : calorimeterHitVector) {
+    for (const auto* caloHit : calorimeterHitVector) {
       try {
+        mcParticleToEnergyWeightMap.clear();
+
         for (const auto&& caloHitLink : *hitRelCollection) {
-          try {
-            mcParticleToEnergyWeightMap.clear();
+          const auto& linkedCaloHit = caloHitLink.get<edm4hep::CalorimeterHit>();
+          if (linkedCaloHit.getObjectID().collectionID != caloHit->getObjectID().collectionID ||
+              linkedCaloHit.getObjectID().index != caloHit->getObjectID().index)
+            continue;
 
-            if (caloHitLink.get<edm4hep::CalorimeterHit>().id() != caloHit.id())
-              continue;
+          const auto& simHit = caloHitLink.get<edm4hep::SimCalorimeterHit>();
+          for (const auto& conb : simHit.getContributions()) {
+            const auto& ipa = conb.getParticle();
+            float ien = conb.getEnergy();
 
-            const auto& simHit = caloHitLink.get<edm4hep::SimCalorimeterHit>();
-            for (const auto& conb : simHit.getContributions()) {
-              const auto& ipa = conb.getParticle();
-              float ien = conb.getEnergy();
-
-              mcParticleToEnergyWeightMap[&ipa] += ien;
-            }
-
-            for (const auto& mcPToE : mcParticleToEnergyWeightMap) {
-              PANDORA_THROW_RESULT_IF(
-                  pandora::STATUS_CODE_SUCCESS, !=,
-                  PandoraApi::SetCaloHitToMCParticleRelationship(m_pandora, &caloHit, mcPToE.first, mcPToE.second))
-            }
-          } catch (const pandora::StatusCodeException& statusCodeException) {
-            m_algorithm.error() << "Failed to extract calo hit to mc particle relationship: "
-                                << statusCodeException.ToString() << endmsg;
-          } catch (const std::exception& exception) {
-            m_algorithm.warning() << "Failed to extract calo hit to mc particle relationship: " << exception.what()
-                                  << endmsg;
+            mcParticleToEnergyWeightMap[&ipa] += ien;
           }
+        }
+
+        for (const auto& mcPToE : mcParticleToEnergyWeightMap) {
+          PANDORA_THROW_RESULT_IF(
+              pandora::STATUS_CODE_SUCCESS, !=,
+              PandoraApi::SetCaloHitToMCParticleRelationship(
+                  m_pandora,
+                  reinterpret_cast<const void*>((static_cast<uint64_t>(caloHit->getObjectID().collectionID) << 32) |
+                                                static_cast<uint32_t>(caloHit->getObjectID().index)),
+                  getObjectAddress(mcPToE.first->getObjectID()), mcPToE.second))
         }
       } catch (const std::exception& exception) {
         m_algorithm.debug() << "Failed to extract calo hit to mc particle relationships collection: "

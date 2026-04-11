@@ -177,15 +177,12 @@ DDPandoraPFANewAlgorithm::operator()(const std::vector<const edm4hep::MCParticle
                                      const std::vector<const edm4hep::CalorimeterHitCollection*>& mCalCollections,
                                      const std::vector<const edm4hep::CalorimeterHitCollection*>& lCalCollections,
                                      const std::vector<const edm4hep::CalorimeterHitCollection*>& lhCalCollections,
-                                     const std::vector<const edm4hep::CaloHitSimCaloHitLinkCollection*>&) const {
+                                     const std::vector<const edm4hep::CaloHitSimCaloHitLinkCollection*>&
+                                         caloLinkCollections) const {
   try {
 
-    std::vector<edm4hep::MCParticle> mcParticlesVector;
-    for (const auto& mcParticleCollection : MCParticleCollections) {
-      mcParticlesVector.insert(mcParticlesVector.end(), mcParticleCollection->begin(), mcParticleCollection->end());
-    }
     PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=,
-                            m_pDDMCParticleCreator->CreateMCParticles(mcParticlesVector))
+                            m_pDDMCParticleCreator->CreateMCParticles(MCParticleCollections))
 
     PANDORA_THROW_RESULT_IF(
         pandora::STATUS_CODE_SUCCESS, !=,
@@ -246,10 +243,10 @@ DDPandoraPFANewAlgorithm::operator()(const std::vector<const edm4hep::MCParticle
                                                              mCalHitCollectionsVector, lCalHitCollectionsVector,
                                                              lhCalHitCollectionsVector))
 
-    // PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=,
-    //                         m_pDDMCParticleCreator->CreateCaloHitToMCParticleRelationships(
-    //                             caloLinkCollections, m_pCaloHitCreator->GetCalorimeterHitVector(), eCalCollections,
-    //                             hCalCollections, mCalCollections, lCalCollections, lhCalCollections))
+    PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=,
+                            m_pDDMCParticleCreator->CreateCaloHitToMCParticleRelationships(
+                                caloLinkCollections, eCalHitCollectionsMap, hCalHitCollectionsVector,
+                                mCalHitCollectionsVector, lCalHitCollectionsVector, lhCalHitCollectionsVector))
 
     PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::ProcessEvent(m_pPandora))
 
